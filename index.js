@@ -7,7 +7,7 @@
 // @grant        none
 // @unwrap
 // ==/UserScript==
-exports(grabAvatar, saveAvatar);
+exports(grabSkin, saveSkin);
 
 const injectorName = `SkinGrabber`;
 const errorMsg = `Whoops! ${injectorName} was unable to load.
@@ -24,6 +24,7 @@ for (
   icons[i] = document.getElementById(`skinmanager_skin${i + 1}_icon`);
 }
 //const icons = Array.from(document.getElementById("skinmanager_allicons").children).map((element) => element.children[0]);
+
 window.inLobby = false;
 
 function injector(src) {
@@ -46,7 +47,7 @@ function injector(src) {
 
   const setPlayerArrayRegex = /(?<=})setPlayerArray.*?}/;
   const setPlayerArrayMatch = rendererMatch[0].match(setPlayerArrayRegex);
-  //set window.currentPlayerArray to arguments whenever setplayerarray is called (note. on all instances, so conflicts theoretically possible)
+  //set window.currentPlayerArray to arguments whenever setplayerarray is called (note. on all instances, so conflicts *theoretically* possible (unlikely) just saying cuz i dont know the bonk codebase that well)
   //using a arrow function cuz i dont feel like naming a variable setPlayerArrayArray
   const setPlayerArray = (() => {
     let array = setPlayerArrayMatch[0].split(";");
@@ -71,7 +72,7 @@ function injector(src) {
   //rename func then remove close window function call
   const saveAvatarFunc = saveAvatarMatch[0]
     .replace(saveAvatarMatch[1], saveAvatarFuncName)
-    .replace(/;\w{1,3}\(\)/, "");
+    .replace(/;\w{1,3}\(\)/, ""); //currently it only checks for any funcitons that are called with no arguments, since there is only one, and there is no real need to semantially check for the function name
   newSrc = newSrc.replace(
     saveAvatarMatch[0],
     saveAvatarMatch[0] +
@@ -79,7 +80,7 @@ function injector(src) {
       `window.saveAvatarFunction = ${saveAvatarFuncName};`
   );
 
-  // const updateIconRegex = /;function (C0j)\(.*?\){.*?;}/;
+  //function to update the icon on the top left
   const updateIconRegex =
     /;function (\w{1,3})\((?:(?!;}).)*,33,33,null,null,null,4\);}/;
   const updateIconMatch = src.match(updateIconRegex);
@@ -113,22 +114,23 @@ function injector(src) {
     `${lobbyPlayerArrayMatch[1]}=[];window.lobbyPlayerArray=${lobbyPlayerArrayMatch[1]};`
   );
 
+  //find network engine function, which is constructed when going into a lobby. Needed since the player array is not updated leaving game
   const networkEngineRegex =
     /;function \w{1,3}\((?:.{1,3},?){3}\){var .{1,3}=\[arguments\];.{1,3}\[2\]=.{1,5};.{1,3}\[1\]=1(?:(?!;};}).)*?;};}/;
   const networkEngineMatch = src.match(networkEngineRegex);
 
   const networkEngine = (() => {
     let array = networkEngineMatch[0].split(";");
+    //put inLobby = true when network engine is constructed
     array.splice(3, 0, "window.inLobby = true");
+    //put inLobby = false in the destructor
     array.splice(
-      array.length - 2, //technically this works, as the destructor is the last function, but it might be unreliable if they change the order of the functions
+      array.length - 1,
       0,
-      "window.inLobby = false"
+      "let originalDestructor = this.destroy;this.destroy = () => {window.inLobby = false;originalDestructor.apply(this, arguments);}"
     );
     return array.join(";");
   })();
-
-  console.log(networkEngine);
 
   newSrc = newSrc.replace(networkEngineMatch[0], networkEngine);
 
@@ -147,17 +149,15 @@ window.bonkCodeInjectors.push((bonkCode) => {
   }
 });
 
-function grabAvatar(username, openLink = true) {
-  //currently only works for players in game / on the renderer
+function grabSkin(username, openLink = true) {
   if (username === null) throw "Invalid username";
 
-  const player = inLobby
-    ? window.rendererPlayerArray
-        .filter((player) => player !== null)
-        .find((player) => player.userName == username)
-    : window.lobbyPlayerArray
-        .filter((player) => player !== null)
-        .find((player) => player.userName == username);
+  const playerArray =
+    inLobby ? window.lobbyPlayerArray : window.rendererPlayerArray;
+
+  const player = playerArray
+    .filter((player) => player !== null)
+    .find((player) => player.userName == username);
   if (player === undefined) throw "Could not find player";
 
   const avatar = new Avatar();
@@ -169,10 +169,10 @@ function grabAvatar(username, openLink = true) {
   return avatar;
 }
 
-function saveAvatar(avatar, slot) {
-  if (!avatar instanceof Avatar) throw new Error("invalid avatar");
+function saveSkin(avatar, slot) {
+  if (!avatar instanceof Avatar) throw "Invalid avatar";
   if (slot) {
-    if (slot < 0 || slot > icons.length) throw new Error("invalid slot number");
+    if (slot < 0 || slot > icons.length) throw "Invalid slot number";
     icons[slot].click();
   }
 
