@@ -141,6 +141,7 @@ function injector(src) {
   console.log(injectorName + " injector run");
   return newSrc;
 }
+//STOLEN
 
 if (!window.bonkCodeInjectors) window.bonkCodeInjectors = [];
 window.bonkCodeInjectors.push((bonkCode) => {
@@ -151,7 +152,6 @@ window.bonkCodeInjectors.push((bonkCode) => {
     throw error;
   }
 });
-//STOLEN
 
 function grabSkin(username, openLink = true) {
   if (username === null) throw "Invalid username";
