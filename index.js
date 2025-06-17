@@ -9,11 +9,13 @@
 // ==/UserScript==
 exports(grabSkin, saveSkin);
 
+//STOLEN
 const injectorName = `SkinGrabber`;
 const errorMsg = `Whoops! ${injectorName} was unable to load.
 This may be due to an update to Bonk.io. If so, please report this error!
 This could also be because you have an extension that is incompatible with \
 ${injectorName}`;
+//STOLEN
 
 const icons = [];
 for (
@@ -27,6 +29,7 @@ for (
 
 window.inLobby = false;
 
+//STOLEN
 function injector(src) {
   let newSrc = src;
 
@@ -114,7 +117,7 @@ function injector(src) {
     `${lobbyPlayerArrayMatch[1]}=[];window.lobbyPlayerArray=${lobbyPlayerArrayMatch[1]};`
   );
 
-  //find network engine function, which is constructed when going into a lobby. Needed since the player array is not updated leaving game
+  //find network engine function, which is constructed when joining a lobby. Needed since the player array is not updated leaving game
   const networkEngineRegex =
     /;function \w{1,3}\((?:.{1,3},?){3}\){var .{1,3}=\[arguments\];.{1,3}\[2\]=.{1,5};.{1,3}\[1\]=1(?:(?!;};}).)*?;};}/;
   const networkEngineMatch = src.match(networkEngineRegex);
@@ -148,6 +151,7 @@ window.bonkCodeInjectors.push((bonkCode) => {
     throw error;
   }
 });
+//STOLEN
 
 function grabSkin(username, openLink = true) {
   if (username === null) throw "Invalid username";
@@ -160,13 +164,11 @@ function grabSkin(username, openLink = true) {
     .find((player) => player.userName == username);
   if (player === undefined) throw "Could not find player";
 
-  const avatar = new Avatar();
-  avatar.fromObject(player.avatar);
-  const link = "https://bonkleagues.io/editor.html?" + avatar.toString();
+  const link = "https://bonkleagues.io/editor.html?" + player.avatar.toString();
   if (openLink === true) window.open(link);
   else console.log(link);
 
-  return avatar;
+  return player.avatar;
 }
 
 function saveSkin(avatar, slot) {
